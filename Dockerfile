@@ -1,12 +1,14 @@
-FROM golang:1.23-alpine AS builder
+FROM golang:alpine AS builder
+
 WORKDIR /app
 COPY . .
-RUN go build -o main .
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o app .
 
-FROM alpine:latest
-WORKDIR /app
-COPY --from=builder /app/main .
-COPY --from=builder /app/migrations /app/migrations
-COPY --from=builder /app/config/dbconf.env /app/config/dbconf.env
+FROM alpine
+RUN apk update && apk add ca-certificates
+WORKDIR /root/
+
+COPY --from=builder /app/app .
+COPY --from=builder /app/config/dbconf.env /root/config/dbconf.env
+CMD ["./app"]
 EXPOSE 8080
-CMD ["./main"]

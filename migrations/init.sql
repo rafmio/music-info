@@ -1,4 +1,4 @@
-CREATE TABLE song_details (
+CREATE TABLE IF NOT EXISTS song_details (
     seq_num SERIAL PRIMARY KEY,
     id INT,
     title VARCHAR(255),

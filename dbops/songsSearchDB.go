@@ -23,7 +23,7 @@ func SongsSearchDB(songDetail *models.SongDetail) ([]byte, error) {
 
 	err = dbCfg.EstablishDbConnection()
 	if err != nil {
-		log.Println("Error establishing DB connection:", err)
+		log.Println("error establishing DB connection:", err)
 		return nil, err
 	} else {
 		log.Println("the connection to DB has been established")

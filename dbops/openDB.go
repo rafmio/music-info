@@ -77,11 +77,17 @@ func (dbc *DBConfig) EstablishDbConnection() error {
 	if err != nil {
 		log.Println("Open database:", err)
 		return err
+	} else {
+		log.Println("successfully connected to database")
+	}
+
+	if dbc.DB == nil {
+		log.Println("sql.Open() returned nil")
 	}
 
 	err = dbc.DB.Ping()
 	if err != nil {
-		log.Println("Ping database:", err)
+		log.Println("ping database:", err)
 	}
 	return nil
 }
