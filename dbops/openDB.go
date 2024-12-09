@@ -10,11 +10,6 @@ import (
 	_ "github.com/lib/pq"
 )
 
-var (
-	dotEnvFile = "config/dbconf.env"
-	// dotEnvFile = "../config/dbconf.env"
-)
-
 type DBConfig struct {
 	DriverName string // e.g. "postgres"
 	Host       string // "127.0.0.1", "localhost", etc

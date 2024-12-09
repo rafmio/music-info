@@ -5,16 +5,25 @@
 package main
 
 import (
-	// sw "getcode/swagger"
 	"log"
 	"musicinfo/server"
 	"net/http"
+	"os"
+
+	"github.com/joho/godotenv"
 )
 
 func main() {
-	log.Printf("Server started on port 8080")
+	err := godotenv.Load("config/dbconf.env")
+	if err != nil {
+		log.Println("error loading.env file:", err)
+		return
+	}
+	port := os.Getenv("MUSIC_INFO_PORT")
+	port = ":" + port
+	log.Printf("Server started on port: %s", port)
 
 	router := server.NewRouter()
 
-	log.Fatal(http.ListenAndServe(":8080", router))
+	log.Fatal(http.ListenAndServe(port, router))
 }

@@ -11,11 +11,16 @@ func SongsSearchDB(songDetail *models.SongDetail) ([]byte, error) {
 	log.Println("the SongsSearchDB() has been called")
 
 	// try to connect to DB
-	dbCfg, err := NewDBConfig("../config/dbconf.env")
+	dbCfg, err := NewDBConfig(dotEnvFile)
 	if err != nil {
 		log.Println("Error creating DBConfig:", err)
 		return nil, err
 	}
+
+	// setting data source name for DB
+	dbCfg.SetDSN()
+	log.Println("now DSN set to:", dbCfg.Dsn)
+
 	err = dbCfg.EstablishDbConnection()
 	if err != nil {
 		log.Println("Error establishing DB connection:", err)

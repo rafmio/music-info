@@ -1,14 +1,24 @@
 version: '3'
 services:
+  api:
+    build: .
+    container_name: music-info-api
+    ports:
+      - "8080:8080"
+    env_file:
+      - config/dbconf.env
+      # - /app/config/dbconf.env 
+
+    depends_on:
+      - db
   db:
-    build: . # Building an image based on the current Dockerfile
-    container_name: song-db
+    image: postgres:latest
+    container_name: music-info-db
     restart: always
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=password
-      - POSTGRES_DB=song_db
+    env_file:
+      - config/dbconf.env
+      # - /app/config/dbconf.env 
     ports:
       - "5432:5432"
     volumes:
-      - ./data:/var/lib/postgresql/data # Saving data outside the container
+      - ./data:/var/lib/postgresql/data

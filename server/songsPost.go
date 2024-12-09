@@ -14,7 +14,8 @@ import (
 )
 
 var (
-	dotEnvFile = "../config/dbconf.env" // path to the .env file
+	// dotEnvFile = "../config/dbconf.env" // path to the .env file
+	dotEnvFile = "config/dbconf.env" // path to the .env file
 )
 
 type ExternalApiConfig struct {

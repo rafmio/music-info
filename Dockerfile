@@ -1,10 +1,12 @@
-FROM postgres:latest
+FROM golang:1.23-alpine AS builder
+WORKDIR /app
+COPY . .
+RUN go build -o main .
 
-# Копируем SQL-скрипт для создания таблицы в контейнер
-COPY migrations/create_song_table.sql /docker-entrypoint-initdb.d/
-
-# Указываем пользовательский порт для доступа к базе данных
-EXPOSE 5432
-
-# Указываем команду для запуска PostgreSQL при старте контейнера
-# CMD ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
+FROM alpine:latest
+WORKDIR /app
+COPY --from=builder /app/main .
+COPY --from=builder /app/migrations /app/migrations
+COPY --from=builder /app/config/dbconf.env /app/config/dbconf.env
+EXPOSE 8080
+CMD ["./main"]
