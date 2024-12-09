@@ -20,7 +20,7 @@ var (
 type ExternalApiConfig struct {
 	Host        string
 	Port        string
-	accessToken string // unexported field
+	AccessToken string // unexported field
 	Path        string
 }
 
@@ -89,15 +89,17 @@ func SongsPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// ???
 	// return the newly added song's details
-	jsonSongs, err = dbops.SongsSearchDB(songDetail)
-	if err != nil {
-		log.Println("error searching in DB")
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
+	// jsonSongs, err = dbops.SongsSearchDB(songDetail)
+	// if err != nil {
+	// 	log.Println("error searching in DB")
+	// 	w.WriteHeader(http.StatusInternalServerError)
+	// 	return
+	// }
 
-	json.NewEncoder(w).Encode(jsonSongs) // marshal and write JSON response to the client
+	// json.NewEncoder(w).Encode(jsonSongs) // marshal and write JSON response to the client
+	// ???
 
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
@@ -114,7 +116,7 @@ func callExternalApi(queryParams *models.QueryParams) (*models.SongDetail, error
 		log.Println("error selecting API source:", err)
 		return nil, err
 	}
-	if apiConfig.accessToken == "" {
+	if apiConfig.AccessToken == "" {
 		songDetail, err = clients.GetSongMetadataExternal(queryParams, apiConfig)
 		if err != nil {
 			log.Println("error getting song metadata from custom external API:", err)
@@ -122,7 +124,7 @@ func callExternalApi(queryParams *models.QueryParams) (*models.SongDetail, error
 		}
 
 	} else {
-		songDetail, err = clients.GetSongMetadata(queryParams, apiConfig.accessToken)
+		songDetail, err = clients.GetSongMetadata(queryParams, apiConfig.AccessToken)
 		if err != nil {
 			log.Println("error getting song metadata from genius.com API:", err)
 			return nil, err
@@ -132,7 +134,7 @@ func callExternalApi(queryParams *models.QueryParams) (*models.SongDetail, error
 	return songDetail, nil
 }
 
-func selectApi() (*ExternalApiConfig, error) {
+func selectApi() (*models.ExternalApiConfig, error) {
 	log.Println("the selectApi() has been called")
 
 	err := godotenv.Load(dotEnvFile)
@@ -140,14 +142,14 @@ func selectApi() (*ExternalApiConfig, error) {
 		log.Fatalf("error loading .env file: %v", err)
 	}
 
-	externalApiConfig := new(ExternalApiConfig)
+	externalApiConfig := new(models.ExternalApiConfig)
 	// retrieve API configuration from environment variables
 	if os.Getenv("MUSIC_INFO_USE_GENIUS_API") == "true" {
 		log.Println("the geinus.com API has been selected as default")
 
-		externalApiConfig.accessToken = os.Getenv("GENIUS_API_ACCESS_TOKEN")
+		externalApiConfig.AccessToken = os.Getenv("GENIUS_API_ACCESS_TOKEN")
 
-		if externalApiConfig.accessToken == "" {
+		if externalApiConfig.AccessToken == "" {
 			return nil, errors.New("missing required environment variables for Genius API")
 		}
 	} else {
@@ -156,7 +158,7 @@ func selectApi() (*ExternalApiConfig, error) {
 		externalApiConfig.Host = os.Getenv("EXTERNAL_API_HOST")
 		externalApiConfig.Port = os.Getenv("EXTERNAL_API_PORT")
 		externalApiConfig.Path = os.Getenv("EXTERNAL_API_PATH")
-		externalApiConfig.accessToken = ""
+		externalApiConfig.AccessToken = ""
 
 		if externalApiConfig.Host == "" || externalApiConfig.Port == "" || externalApiConfig.Path == "" {
 			return nil, errors.New("missing required environment variables for custom external API")

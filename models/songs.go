@@ -12,6 +12,13 @@ type SongDetail struct {
 }
 
 type QueryParams struct {
-	Group       string `json:"group"`
-	Song        string `json:"song"`
+	Group string `json:"group"`
+	Song  string `json:"song"`
+}
+
+type ExternalApiConfig struct {
+	Host        string
+	Port        string
+	AccessToken string
+	Path        string
 }

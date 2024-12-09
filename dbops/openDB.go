@@ -11,7 +11,8 @@ import (
 )
 
 var (
-	dotEnvFile = "../config/dbconf.env"
+	dotEnvFile = "config/dbconf.env"
+	// dotEnvFile = "../config/dbconf.env"
 )
 
 type DBConfig struct {

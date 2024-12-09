@@ -7,11 +7,11 @@ import (
 	"io"
 	"log"
 	"musicinfo/models"
-	"musicinfo/server"
+
 	"net/http"
 )
 
-func GetSongMetadataExternal(queryParams *models.QueryParams, config *server.ExternalApiConfig) (*models.SongDetail, error) {
+func GetSongMetadataExternal(queryParams *models.QueryParams, config *models.ExternalApiConfig) (*models.SongDetail, error) {
 	log.Println("try to get song's metadata from external API")
 
 	// converting the request body to JSON

@@ -25,4 +25,20 @@ func SongsInsertDB(songDetail *models.SongDetail) error {
 		log.Println("the database connection has been established")
 	}
 	defer dbConf.DB.Close()
+
+	// building the SQL-query string
+	query := `
+		INSERT INTO song_details (id, title, release_date, artist, lyrics, link)
+		VALUES ($1, $2, $3, $4, $5, $6)
+	`
+	_, err = dbConf.DB.Exec(query,
+		songDetail.ID,
+		songDetail.Title,
+		songDetail.ReleaseDate,
+		songDetail.Artist,
+		songDetail.Lyrics,
+		songDetail.Link,
+	)
+
+	return err
 }
