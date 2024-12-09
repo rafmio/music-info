@@ -59,12 +59,12 @@ func makeSongsSearchQuery(songDetail *models.SongDetail, db *sql.DB) ([]*models.
 		args        []interface{}
 	)
 
-	// If the ID field is set, use it as the primary search criteria
+	// Если установлен ID, используем его как основной критерий поиска
 	if songDetail.ID != 0 {
 		whereClause = "id = ?"
 		args = append(args, songDetail.ID)
 
-		// Construct the SQL query
+		// Формируем SQL-запрос
 		query := "SELECT id, title, release_date, artist, text, lyrics, link FROM song_details WHERE " + whereClause
 
 		results, err := queryToDB(db, query, args)
@@ -78,27 +78,33 @@ func makeSongsSearchQuery(songDetail *models.SongDetail, db *sql.DB) ([]*models.
 		return results, nil
 	}
 
-	// Build the WHERE clause based on the provided parameters
+	// Строим предложение WHERE на основе предоставленных параметров
 	if songDetail.Artist != "" {
-		whereClause = "artist = ?"
+		if whereClause == "" { // Добавляем условие только если это первое условие
+			whereClause = "artist = ?"
+		} else { // Иначе добавляем оператор AND
+			whereClause += " AND artist = ?"
+		}
 		args = append(args, songDetail.Artist)
 	}
 	if songDetail.Title != "" {
-		if whereClause != "" {
-			whereClause += " AND "
+		if whereClause == "" {
+			whereClause = "title = ?"
+		} else {
+			whereClause += " AND title = ?"
 		}
-		whereClause += "title = ?"
 		args = append(args, songDetail.Title)
 	}
 	if songDetail.ReleaseDate != "" {
-		if whereClause != "" {
-			whereClause += " AND "
+		if whereClause == "" {
+			whereClause = "release_date = ?"
+		} else {
+			whereClause += " AND release_date = ?"
 		}
-		whereClause += "release_date = ?"
 		args = append(args, songDetail.ReleaseDate)
 	}
 
-	// Construct the SQL query
+	// Формируем окончательный SQL-запрос
 	query := "SELECT id, title, release_date, artist, text, lyrics, link FROM song_details"
 	if whereClause != "" {
 		query += " WHERE " + whereClause
