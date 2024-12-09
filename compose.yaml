@@ -1,0 +1,14 @@
+version: '3'
+services:
+  db:
+    build: . # Building an image based on the current Dockerfile
+    container_name: song-db
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=song_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./data:/var/lib/postgresql/data # Saving data outside the container

@@ -1,0 +1,215 @@
+openapi: 3.0.0
+info:
+  title: Music Service API
+  version: 1.0.0
+servers:
+- url: http://localhost:8080/v1
+paths:
+  /songs:
+    get:
+      summary: Получение списка всех песен
+      description: Возвращает список всех песен из базы данных
+      responses:
+        "200":
+          description: Успешный ответ
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SongDetail'
+                x-content-type: application/json
+    post:
+      summary: Добавление новой песни
+      description: Создает новую песню в базе данных
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewSongRequest'
+        required: true
+      responses:
+        "201":
+          description: Песня успешно создана
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SongDetail'
+        "400":
+          description: Некорректный запрос
+  /songs/{id}:
+    get:
+      summary: Получение песни по идентификатору
+      parameters:
+      - name: id
+        in: path
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: integer
+      responses:
+        "200":
+          description: Успешный ответ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SongDetail'
+        "404":
+          description: Песни с таким идентификатором не существует
+    put:
+      summary: Обновление информации о песне
+      parameters:
+      - name: id
+        in: path
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSongRequest'
+        required: true
+      responses:
+        "200":
+          description: Информация о песне успешно обновлена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SongDetail'
+        "400":
+          description: Некорректный запрос
+        "404":
+          description: Песни с таким идентификатором не существует
+    delete:
+      summary: Удаление песни по идентификатору
+      parameters:
+      - name: id
+        in: path
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: integer
+      responses:
+        "204":
+          description: Песня успешно удалена
+        "404":
+          description: Песни с таким идентификатором не существует
+  /songs/search:
+    get:
+      summary: Поиск песен по различным критериям
+      parameters:
+      - name: title
+        in: query
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+      - name: artist
+        in: query
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+      - name: release_date
+        in: query
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+          format: date
+      responses:
+        "200":
+          description: Успешный ответ
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SongDetail'
+                x-content-type: application/json
+        "400":
+          description: Некорректный запрос
+  /songs/{id}/lyrics:
+    get:
+      summary: Получение текста песни по идентификатору
+      parameters:
+      - name: id
+        in: path
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: integer
+      - name: page
+        in: query
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: integer
+      responses:
+        "200":
+          description: Успешный ответ
+          content:
+            text/plain:
+              schema:
+                type: string
+                x-content-type: text/plain
+        "404":
+          description: Песни с таким идентификатором не существует
+components:
+  schemas:
+    SongDetail:
+      type: object
+      properties:
+        SeqNum:
+          type: string
+        ID:
+          type: integer
+        Title:
+          type: string
+        ReleaseDate:
+          type: string
+        Artist:
+          type: string
+        Text:
+          type: string
+        Lyrics:
+          type: string
+        Link:
+          type: string
+      example:
+        Artist: Artist
+        SeqNum: SeqNum
+        Title: Title
+        Text: Text
+        Lyrics: Lyrics
+        ID: 0
+        ReleaseDate: ReleaseDate
+        Link: Link
+    NewSongRequest:
+      type: object
+      properties:
+        group:
+          type: string
+        song:
+          type: string
+    UpdateSongRequest:
+      type: object
+      properties:
+        Text:
+          type: string
+        Artist:
+          type: string
+        ReleaseDate:
+          type: string
+        Title:
+          type: string
