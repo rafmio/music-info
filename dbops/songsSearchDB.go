@@ -3,8 +3,10 @@ package dbops
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"log"
 	"musicinfo/models"
+	"strings"
 )
 
 func SongsSearchDB(songDetail *models.SongDetail) ([]byte, error) {
@@ -32,12 +34,17 @@ func SongsSearchDB(songDetail *models.SongDetail) ([]byte, error) {
 
 	// try to make a query
 	log.Println("trying to make a query...")
-	songs, err := makeSongsSearchQuery(songDetail, dbCfg.DB)
+	query, params := buildSongSearchQuery(songDetail)
 	if err != nil {
 		log.Println("error making query:", err)
 		return nil, err
 	} else {
 		log.Println("the query was successfully completed")
+	}
+
+	songs, err := makeQueryToDB(dbCfg.DB, query, params)
+	if err != nil {
+		log.Println("error making query to DB")
 	}
 
 	log.Println("encoding data to JSON")
@@ -51,81 +58,54 @@ func SongsSearchDB(songDetail *models.SongDetail) ([]byte, error) {
 	return jsonSongs, nil
 }
 
-func makeSongsSearchQuery(songDetail *models.SongDetail, db *sql.DB) ([]*models.SongDetail, error) {
-	log.Println("the makeSongsSearchQuery() func has been called")
+func buildSongSearchQuery(song *models.SongDetail) (string, []interface{}) {
+	log.Println("start to building SQL-query string...")
 
-	var (
-		whereClause string
-		args        []interface{}
-	)
+	var queryParts []string
+	var params []interface{}
 
-	// Если установлен ID, используем его как основной критерий поиска
-	if songDetail.ID != 0 {
-		whereClause = "id = ?"
-		args = append(args, songDetail.ID)
-
-		// Формируем SQL-запрос
-		query := "SELECT id, title, release_date, artist, text, lyrics, link FROM song_details WHERE " + whereClause
-
-		results, err := queryToDB(db, query, args)
-		if err != nil {
-			log.Println("error making query to DB:", err)
-			return nil, err
-		} else {
-			log.Println("the queryToDB() function was completed successfully")
-		}
-
-		return results, nil
+	if song.ID > 0 {
+		queryParts = append(queryParts, fmt.Sprintf("id = $%d", len(params)+1))
+		params = append(params, song.ID)
 	}
 
-	// Строим предложение WHERE на основе предоставленных параметров
-	if songDetail.Artist != "" {
-		if whereClause == "" { // Добавляем условие только если это первое условие
-			whereClause = "artist = ?"
-		} else { // Иначе добавляем оператор AND
-			whereClause += " AND artist = ?"
-		}
-		args = append(args, songDetail.Artist)
-	}
-	if songDetail.Title != "" {
-		if whereClause == "" {
-			whereClause = "title = ?"
-		} else {
-			whereClause += " AND title = ?"
-		}
-		args = append(args, songDetail.Title)
-	}
-	if songDetail.ReleaseDate != "" {
-		if whereClause == "" {
-			whereClause = "release_date = ?"
-		} else {
-			whereClause += " AND release_date = ?"
-		}
-		args = append(args, songDetail.ReleaseDate)
+	if song.Title != "" {
+		queryParts = append(queryParts, fmt.Sprintf("title ILIKE $%d", len(params)+1))
+		params = append(params, "%"+song.Title+"%") // Добавляем wildcards для частичного совпадения
 	}
 
-	// Формируем окончательный SQL-запрос
-	query := "SELECT id, title, release_date, artist, text, lyrics, link FROM song_details"
-	if whereClause != "" {
-		query += " WHERE " + whereClause
+	if song.ReleaseDate != "" { // Проверяем наличие непустой даты
+		queryParts = append(queryParts, fmt.Sprintf("release_date = $%d", len(params)+1))
+		params = append(params, song.ReleaseDate)
 	}
 
-	results, err := queryToDB(db, query, args)
-	if err != nil {
-		log.Println("error making query to DB:", err)
-		return nil, err
+	if song.Artist != "" {
+		queryParts = append(queryParts, fmt.Sprintf("artist ILIKE $%d", len(params)+1))
+		params = append(params, "%"+song.Artist+"%") // Добавляем wildcards для частичного совпадения
 	}
 
-	return results, nil
+	baseQuery := `
+        SELECT seq_num, id, title, release_date, artist, lyrics, link
+        FROM song_details
+        WHERE %s`
+
+	finalQuery := fmt.Sprintf(baseQuery, strings.Join(queryParts, " AND "))
+
+	log.Println("the query string is built")
+
+	return finalQuery, params
 }
 
-func queryToDB(db *sql.DB, query string, args []interface{}) ([]*models.SongDetail, error) {
-	log.Println("the queryToDB() func has been called")
+func makeQueryToDB(db *sql.DB, query string, args []interface{}) ([]*models.SongDetail, error) {
+	log.Println("the makeQueryToDB() func has been called")
 	// Execute the query
 	rows, err := db.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}
+
+	log.Println("parsing response to []*models.SongDetail...")
+
 	defer rows.Close()
 	// Collect the results
 	var results []*models.SongDetail
