@@ -91,8 +91,9 @@ func ChooseSong(queryParams *models.QueryParams, songs []*genius.Hit) *genius.So
 
 func FillSongDetail(song *genius.Song) *models.SongDetail {
 	songDetail := &models.SongDetail{
-		ID:          song.ID,
-		Title:       song.FullTitle,
+		ID: song.ID,
+		// Title:       song.FullTitle,
+		Title:       song.Title,
 		ReleaseDate: song.ReleaseDateForDisplay,
 		Artist:      song.PrimaryArtist.Name,
 		Link:        song.URL,

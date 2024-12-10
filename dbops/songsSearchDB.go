@@ -3,10 +3,16 @@ package dbops
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"musicinfo/models"
+	"strconv"
 	"strings"
+)
+
+var (
+	ErrSongNotFound = errors.New("no song details found in the DB")
 )
 
 func SongsSearchDB(songDetail *models.SongDetail) ([]byte, error) {
@@ -15,7 +21,7 @@ func SongsSearchDB(songDetail *models.SongDetail) ([]byte, error) {
 	// try to connect to DB
 	dbCfg, err := NewDBConfig(dotEnvFile)
 	if err != nil {
-		log.Println("Error creating DBConfig:", err)
+		log.Println("error creating DBConfig:", err)
 		return nil, err
 	}
 
@@ -33,73 +39,60 @@ func SongsSearchDB(songDetail *models.SongDetail) ([]byte, error) {
 	defer dbCfg.DB.Close()
 
 	// try to make a query
-	log.Println("trying to make a query...")
-	query, params := buildSongSearchQuery(songDetail)
+	queryString := buildSongSearchQuery(songDetail)
+	log.Println("the query was successfully completed")
+
+	songs, err := makeQueryToDB(dbCfg.DB, queryString)
 	if err != nil {
-		log.Println("error making query:", err)
+		if err != ErrSongNotFound {
+			log.Println("error making query to DB:", err)
+		}
 		return nil, err
 	} else {
-		log.Println("the query was successfully completed")
-	}
+		log.Println("encoding data to JSON")
+		jsonSongs, err := json.Marshal(songs)
+		if err != nil {
+			log.Println("error encoding data to JSON")
+		} else {
+			log.Println("the data is encoded in JSON successfully, len(jsonSongs):", len(jsonSongs))
+		}
 
-	songs, err := makeQueryToDB(dbCfg.DB, query, params)
-	if err != nil {
-		log.Println("error making query to DB")
+		return jsonSongs, nil
 	}
-
-	log.Println("encoding data to JSON")
-	jsonSongs, err := json.Marshal(songs)
-	if err != nil {
-		log.Println("error encoding data to JSON")
-	} else {
-		log.Println("the data is encoded in JSON successfully")
-	}
-
-	return jsonSongs, nil
 }
 
-func buildSongSearchQuery(song *models.SongDetail) (string, []interface{}) {
+func buildSongSearchQuery(song *models.SongDetail) string {
+	log.Println("buildSongSearchQuery() has been called")
 	log.Println("start to building SQL-query string...")
 
-	var queryParts []string
-	var params []interface{}
+	params := make(map[string]string)
+	params["id"] = strconv.Itoa(song.ID)
+	params["title"] = song.Title
+	params["artist"] = song.Artist
+	params["release_date"] = song.ReleaseDate
 
-	if song.ID > 0 {
-		queryParts = append(queryParts, fmt.Sprintf("id = $%d", len(params)+1))
-		params = append(params, song.ID)
+	selectClause := "SELECT * FROM song_details WHERE %s ;"
+	var whereClause string
+
+	for key, value := range params {
+		if value == "" || value == "0" {
+			continue
+		}
+		whereClause += key + "=" + "'" + value + "'" + " AND "
 	}
+	whereClause = strings.TrimSuffix(whereClause, " AND ")
 
-	if song.Title != "" {
-		queryParts = append(queryParts, fmt.Sprintf("title ILIKE $%d", len(params)+1))
-		params = append(params, "%"+song.Title+"%") // Добавляем wildcards для частичного совпадения
-	}
+	finalQueryString := fmt.Sprintf(selectClause, whereClause)
 
-	if song.ReleaseDate != "" { // Проверяем наличие непустой даты
-		queryParts = append(queryParts, fmt.Sprintf("release_date = $%d", len(params)+1))
-		params = append(params, song.ReleaseDate)
-	}
+	log.Println("the SQL-query string has been successfully built:", finalQueryString)
 
-	if song.Artist != "" {
-		queryParts = append(queryParts, fmt.Sprintf("artist ILIKE $%d", len(params)+1))
-		params = append(params, "%"+song.Artist+"%") // Добавляем wildcards для частичного совпадения
-	}
-
-	baseQuery := `
-        SELECT seq_num, id, title, release_date, artist, lyrics, link
-        FROM song_details
-        WHERE %s`
-
-	finalQuery := fmt.Sprintf(baseQuery, strings.Join(queryParts, " AND "))
-
-	log.Println("the query string is built")
-
-	return finalQuery, params
+	return finalQueryString
 }
 
-func makeQueryToDB(db *sql.DB, query string, args []interface{}) ([]*models.SongDetail, error) {
+func makeQueryToDB(db *sql.DB, query string) ([]*models.SongDetail, error) {
 	log.Println("the makeQueryToDB() func has been called")
 	// Execute the query
-	rows, err := db.Query(query, args...)
+	rows, err := db.Query(query)
 	if err != nil {
 		return nil, err
 	}
@@ -108,10 +101,12 @@ func makeQueryToDB(db *sql.DB, query string, args []interface{}) ([]*models.Song
 
 	defer rows.Close()
 	// Collect the results
-	var results []*models.SongDetail
+	results := make([]*models.SongDetail, 0)
+
 	for rows.Next() {
 		song := &models.SongDetail{}
 		if err := rows.Scan(
+			&song.SeqNum,
 			&song.ID,
 			&song.Title,
 			&song.ReleaseDate,
@@ -127,7 +122,13 @@ func makeQueryToDB(db *sql.DB, query string, args []interface{}) ([]*models.Song
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-	log.Println("results:", results)
-	log.Println("len(results):", len(results))
+
+	if len(results) == 0 {
+		log.Println("emtpy 'results', len(results):", len(results), results)
+		return nil, ErrSongNotFound
+	} else {
+		log.Println("non-empty results, len(results):", len(results), results)
+	}
+
 	return results, nil
 }

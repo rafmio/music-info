@@ -45,6 +45,6 @@ func SongsSearchGet(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	_, err = w.Write(jsonSongs)
 	if err != nil {
-		log.Println("Error writing response:", err)
+		log.Println("error writing response:", err)
 	}
 }

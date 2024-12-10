@@ -53,6 +53,7 @@ func SongsPost(w http.ResponseWriter, r *http.Request) {
 		return
 	} else {
 		log.Println("the request's body has been parsed to QueryParams struct")
+		log.Printf("query params to POST: %v\n", queryParams)
 	}
 
 	// check if the song to be added (POSTed) already exists in the database to avoid duplicates
@@ -62,17 +63,21 @@ func SongsPost(w http.ResponseWriter, r *http.Request) {
 
 	jsonSongs, err := dbops.SongsSearchDB(songsDetail)
 	if err != nil {
-		log.Println("error searching in DB")
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		if err != dbops.ErrSongNotFound {
+			log.Println("error searching in DB:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 	}
+
 	if len(jsonSongs) > 0 {
-		log.Println("the song you are trying to add (POST) already exists in the DB")
+		log.Printf("SongsPost(): the song you are trying to add (POST) already exists in the DB\njsonSongs:%v\n", jsonSongs)
 		w.WriteHeader(http.StatusConflict) // 409
 		return
 	}
 
 	// call external API to get song metadata
+	log.Println("calling callExternalApi()...")
 	songDetail, err := callExternalApi(&queryParams)
 	if err != nil {
 		log.Println("error getting song metadata from external API:", err)
@@ -148,7 +153,7 @@ func selectApi() (*models.ExternalApiConfig, error) {
 	if os.Getenv("MUSIC_INFO_USE_GENIUS_API") == "true" {
 		log.Println("the geinus.com API has been selected as default")
 
-		externalApiConfig.AccessToken = os.Getenv("GENIUS_API_ACCESS_TOKEN")
+		externalApiConfig.AccessToken = os.Getenv("GENIUS_ACCESS_TOKEN")
 
 		if externalApiConfig.AccessToken == "" {
 			return nil, errors.New("missing required environment variables for Genius API")
