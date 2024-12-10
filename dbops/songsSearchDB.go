@@ -127,5 +127,7 @@ func makeQueryToDB(db *sql.DB, query string, args []interface{}) ([]*models.Song
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
+	log.Println("results:", results)
+	log.Println("len(results):", len(results))
 	return results, nil
 }

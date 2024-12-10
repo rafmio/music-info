@@ -12,7 +12,7 @@ services:
     volumes:
       - ./config/:/root/config/
   db:
-    image: postgres:14
+    image: postgres:latest
     container_name: music-info-db
     # restart: always
     env_file:
