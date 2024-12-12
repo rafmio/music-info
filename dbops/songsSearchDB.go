@@ -106,7 +106,6 @@ func makeQueryToDB(db *sql.DB, query string) ([]*models.SongDetail, error) {
 	for rows.Next() {
 		song := &models.SongDetail{}
 		if err := rows.Scan(
-			&song.SeqNum,
 			&song.ID,
 			&song.Title,
 			&song.ReleaseDate,
@@ -120,6 +119,7 @@ func makeQueryToDB(db *sql.DB, query string) ([]*models.SongDetail, error) {
 		results = append(results, song)
 	}
 	if err := rows.Err(); err != nil {
+		log.Println("error while iterating over rows:", err)
 		return nil, err
 	}
 

@@ -95,18 +95,6 @@ func SongsPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// ???
-	// return the newly added song's details
-	// jsonSongs, err = dbops.SongsSearchDB(songDetail)
-	// if err != nil {
-	// 	log.Println("error searching in DB")
-	// 	w.WriteHeader(http.StatusInternalServerError)
-	// 	return
-	// }
-
-	// json.NewEncoder(w).Encode(jsonSongs) // marshal and write JSON response to the client
-	// ???
-
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
 }
