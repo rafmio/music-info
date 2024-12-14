@@ -2,7 +2,6 @@ package dbops
 
 import (
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -15,7 +14,7 @@ var (
 	ErrSongNotFound = errors.New("no song details found in the DB")
 )
 
-func SongsSearchDB(songDetail *models.SongDetail) ([]byte, error) {
+func SongsSearchDB(songDetail *models.SongDetail) ([]*models.SongDetail, error) {
 	log.Println("the SongsSearchDB() has been called")
 
 	// try to connect to DB
@@ -29,6 +28,7 @@ func SongsSearchDB(songDetail *models.SongDetail) ([]byte, error) {
 	dbCfg.SetDSN()
 	log.Println("now DSN set to:", dbCfg.Dsn)
 
+	// connect to DB
 	err = dbCfg.EstablishDbConnection()
 	if err != nil {
 		log.Println("error establishing DB connection:", err)
@@ -42,29 +42,23 @@ func SongsSearchDB(songDetail *models.SongDetail) ([]byte, error) {
 	queryString := buildSongSearchQuery(songDetail)
 	log.Println("the query was successfully completed")
 
+	log.Println("try to make SQL-query to DB...")
 	songs, err := makeQueryToDB(dbCfg.DB, queryString)
 	if err != nil {
 		if err != ErrSongNotFound {
 			log.Println("error making query to DB:", err)
 		}
-		return nil, err
-	} else {
-		log.Println("encoding data to JSON")
-		jsonSongs, err := json.Marshal(songs)
-		if err != nil {
-			log.Println("error encoding data to JSON")
-		} else {
-			log.Println("the data is encoded in JSON successfully, len(jsonSongs):", len(jsonSongs))
+		if err == ErrSongNotFound {
+			log.Println("the song you are looking for has not been found")
 		}
-
-		return jsonSongs, nil
+		return nil, err
 	}
+	log.Println("the query to DB was successfully executed")
+
+	return songs, nil
 }
 
 func buildSongSearchQuery(song *models.SongDetail) string {
-	log.Println("buildSongSearchQuery() has been called")
-	log.Println("start to building SQL-query string...")
-
 	params := make(map[string]string)
 	params["id"] = strconv.Itoa(song.ID)
 	params["title"] = song.Title
@@ -72,22 +66,51 @@ func buildSongSearchQuery(song *models.SongDetail) string {
 	params["release_date"] = song.ReleaseDate
 
 	selectClause := "SELECT * FROM song_details WHERE %s ;"
-	var whereClause string
+	var whereClause []string
 
 	for key, value := range params {
 		if value == "" || value == "0" {
 			continue
 		}
-		whereClause += key + "=" + "'" + value + "'" + " AND "
+		// Using ILIKE for case-insensitive comparison
+		// Escaping single quotes: We continue to escape single quotes in strings
+		// using strings.replaceAll(value, "'", """), to avoid SQL\errors.
+		whereClause = append(whereClause, fmt.Sprintf("%s ILIKE '%s'", key, strings.ReplaceAll(value, "'", "''")))
 	}
-	whereClause = strings.TrimSuffix(whereClause, " AND ")
 
-	finalQueryString := fmt.Sprintf(selectClause, whereClause)
-
-	log.Println("the SQL-query string has been successfully built:", finalQueryString)
+	finalWhereClause := strings.Join(whereClause, " AND ")
+	finalQueryString := fmt.Sprintf(selectClause, finalWhereClause)
 
 	return finalQueryString
 }
+
+// func buildSongSearchQuery(song *models.SongDetail) string {
+// 	log.Println("buildSongSearchQuery() has been called")
+// 	log.Println("start to building SQL-query string...")
+
+// 	params := make(map[string]string)
+// 	params["id"] = strconv.Itoa(song.ID)
+// 	params["title"] = song.Title
+// 	params["artist"] = song.Artist
+// 	params["release_date"] = song.ReleaseDate
+
+// 	selectClause := "SELECT * FROM song_details WHERE %s ;"
+// 	var whereClause string
+
+// 	for key, value := range params {
+// 		if value == "" || value == "0" {
+// 			continue
+// 		}
+// 		whereClause += key + "=" + "'" + value + "'" + " AND "
+// 	}
+// 	whereClause = strings.TrimSuffix(whereClause, " AND ")
+
+// 	finalQueryString := fmt.Sprintf(selectClause, whereClause)
+
+// 	log.Println("the SQL-query string has been successfully built:", finalQueryString)
+
+// 	return finalQueryString
+// }
 
 func makeQueryToDB(db *sql.DB, query string) ([]*models.SongDetail, error) {
 	log.Println("the makeQueryToDB() func has been called")

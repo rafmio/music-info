@@ -14,25 +14,26 @@ import (
 )
 
 var (
-	// dotEnvFile = "../config/dbconf.env" // path to the .env file
 	dotEnvFile = "config/dbconf.env" // path to the .env file
 )
 
 type ExternalApiConfig struct {
 	Host        string
 	Port        string
-	AccessToken string // unexported field
+	AccessToken string
 	Path        string
 }
 
-// request example:
-// curl -X POST \
-//   http://localhost:8080/v1/songs \
-//   -H 'Content-Type: application/json' \
-//   -d '{
-//   "group": "Muse",
-//   "song": "Supermassive Black Hole"
-// }'
+/*
+request example:
+curl -X POST \
+  http://localhost:8080/v1/songs \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "group": "Muse",
+  "song": "Supermassive Black Hole"
+}'
+*/
 
 func SongsPost(w http.ResponseWriter, r *http.Request) {
 	log.Println("the SongsPost() function has been called")
@@ -61,17 +62,18 @@ func SongsPost(w http.ResponseWriter, r *http.Request) {
 	songsDetail.Artist = queryParams.Group
 	songsDetail.Title = queryParams.Song
 
-	jsonSongs, err := dbops.SongsSearchDB(songsDetail)
+	songs, err := dbops.SongsSearchDB(songsDetail)
 	if err != nil {
 		if err != dbops.ErrSongNotFound {
 			log.Println("error searching in DB:", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+		log.Println("the song you are trying to add (POST) does not exist in the DB, you can add it")
 	}
 
-	if len(jsonSongs) > 0 {
-		log.Printf("SongsPost(): the song you are trying to add (POST) already exists in the DB\njsonSongs:%v\n", jsonSongs)
+	if len(songs) > 0 {
+		log.Println("SongsPost(): the song you are trying to add (POST) already exists in the DB, you can't add it")
 		w.WriteHeader(http.StatusConflict) // 409
 		return
 	}
