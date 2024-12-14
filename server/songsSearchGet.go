@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 	"strconv"
@@ -30,21 +31,30 @@ func SongsSearchGet(w http.ResponseWriter, r *http.Request) {
 	// TODO: Implement pagination
 
 	// search song
-	log.Println("try to find song")
-	jsonSongs, err := dbops.SongsSearchDB(songDetail)
+	log.Println("trying to find song")
+	songs, err := dbops.SongsSearchDB(songDetail)
 	if err != nil {
-		log.Println("the desired song with the specified parameters was not found")
-		w.WriteHeader(http.StatusNotFound)
-	} else {
-		if jsonSongs != nil {
-			log.Println("the songs you are looking for have been found")
+		if err == dbops.ErrSongNotFound {
+			log.Println("the song you are looking for has not been found")
+			w.WriteHeader(http.StatusNotFound)
+			return
+		} else {
+			log.Println("error searching for song:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
 		}
-	}
-
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
-	_, err = w.Write(jsonSongs)
-	if err != nil {
-		log.Println("error writing response:", err)
+	} else {
+		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+		jsonSongs, err := json.Marshal(songs)
+		if err != nil {
+			log.Println("error marshaling songs:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		_, err = w.Write(jsonSongs)
+		if err != nil {
+			log.Println("error writing response:", err)
+		}
 	}
 }
